@@ -4,10 +4,12 @@ const cors = require('cors');
 app.use(cors(), express.json());
 require('dotenv/config');
 const SignIn = require("./routes/signinRoute/SignIn");
+const FetchSupervisorData = require("./routes/supervisorRoute/FetchSupervisorData");
 
 async function connectAndStartServer() 
 {
   app.use("/sign-in", SignIn);
+  app.use("/fetch-supervisor-data", FetchSupervisorData);
 
   app.listen(process.env.SERVER_PORT, () => {
     console.log(`Server running on port`);
