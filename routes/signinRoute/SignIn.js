@@ -25,7 +25,7 @@ router.post('/', (req, res) => {
 
       if (correctSupervisorPassword != -1) 
       {
-        return res.status(200).json({ userID: supervisorResults[0].ID });
+        return res.status(200).json({ isSupervisor: true, userID: supervisorResults[0].ID });
       } 
       else 
       {
