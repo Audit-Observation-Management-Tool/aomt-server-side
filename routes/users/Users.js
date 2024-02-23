@@ -1,0 +1,107 @@
+const express = require('express');
+const router = express.Router();
+const pool = require("../../config/database");
+
+router.post('/authenticate', (req, res) => {
+    const { userID, password } = req.body;
+  
+    const handleSupervisorLogin = (supervisorResults) => {
+      res.status(200).json({ isSupervisor: true, userID: supervisorResults[0].ID });
+    };
+  
+    const handleMemberLogin = (memberResults) => {
+      res.status(200).json({ userID: memberResults[0].ID });
+    };
+  
+    const handleError = (err, message) => {
+      console.error('Error executing MySQL query:', err);
+      res.status(500).json({ message });
+    };
+  
+    pool.getConnection((err, connection) => {
+      if (err) {
+        return handleError(err, 'Internal server error');
+      }
+  
+      const sql = `SELECT ID, Password FROM supervisors WHERE ID = ? AND Password = ?`;
+  
+      connection.query(sql, [userID, password], (err, supervisorResults) => {
+        if (err) 
+        {
+          return handleError(err, 'Internal server error');
+        }
+  
+        if (supervisorResults.length > 0) 
+        {
+          return handleSupervisorLogin(supervisorResults);
+        }
+  
+        const memberSql = `SELECT ID, Password from team_members WHERE ID = ? AND Password = ?`;
+        connection.query(memberSql, [userID, password], (err, memberResults) => {
+          connection.release();
+          if (err) 
+          {
+            return handleError(err, 'Internal server error');
+          }
+  
+          if (memberResults.length > 0) 
+          {
+            return handleMemberLogin(memberResults);
+          }
+  
+          console.log("User not found");
+          return res.status(500).json({ message: 'User not found' });
+        });
+      });
+    });
+  });
+
+
+  router.get('/supervisor/:userID', (req, res) => {
+    const { userID } = req.params; 
+    pool.getConnection((err, connection) => {
+      if (err) 
+      {
+        console.error('Error getting MySQL connection:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+  
+      const sql = 'CALL FetchSupervisorData(?)';
+  
+      connection.query(sql, [userID], (err, supervisorResults) => {
+        connection.release();
+        if (err) 
+        {
+          console.error('Error executing MySQL query:', err);
+          return res.status(500).json({ message: 'Internal server error' });
+        }
+        res.status(200).json({ supervisorData: supervisorResults[0] });
+      });
+    });
+  });
+
+  
+  router.get('/member/:userID', (req, res) => {
+    const { userID } = req.params; 
+    pool.getConnection((err, connection) => {
+      if (err) 
+      {
+        console.error('Error getting MySQL connection:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+  
+      const sql = 'CALL FetchMemberData(?)';
+  
+      connection.query(sql, [userID], (err, memberResults) => {
+        connection.release();
+        if (err) 
+        {
+          console.error('Error executing MySQL query:', err);
+          return res.status(500).json({ message: 'Internal server error' });
+        }
+        res.status(200).json({ memberData: memberResults[0] });
+      });
+    });
+  });
+  
+  module.exports = router;  
