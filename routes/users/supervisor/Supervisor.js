@@ -1,16 +1,36 @@
 const express = require('express');
 const router = express.Router();
-const pool = require("../../config/database");
-console.log('SupervisorDashboard module imported!');
+const pool = require("../../../config/database");
+
+  router.get('/:userID', (req, res) => {
+    const { userID } = req.params; 
+    pool.getConnection((err, connection) => {
+      if (err) 
+      {
+        console.error('Error getting MySQL connection:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+  
+      const sql = 'CALL FetchSupervisorData(?)';
+  
+      connection.query(sql, [userID], (err, supervisorResults) => {
+        connection.release();
+        if (err) 
+        {
+          console.error('Error executing MySQL query:', err);
+          return res.status(500).json({ message: 'Internal server error' });
+        }
+        res.status(200).json({ supervisorData: supervisorResults[0] });
+      });
+    });
+  });
 
 
-router.post('/', (req, res) => { 
-    router.use(express.json());
-    console.log('backend');
-    try {
+  router.post('/', (req, res) => { 
+    try 
+    {
       const { supervisorId } = req.body;
   
-      // Get a connection from the pool
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
@@ -18,15 +38,12 @@ router.post('/', (req, res) => {
           return;
         }
   
-        // Use the callback-style query method
         connection.query(
-          `
-            SELECT *
+          `SELECT *
             FROM software
             WHERE Supervisor_ID = ?`,
           [supervisorId],
           (queryErr, rows) => {
-            // Release the connection back to the pool
             connection.release();
   
             if (queryErr) {
@@ -36,14 +53,11 @@ router.post('/', (req, res) => {
             }
   
             if (!rows || rows.length === 0) {
-              // No rows found
               console.log('No software found for supervisor ID:', supervisorId);
               res.status(404).json({ error: 'Not Found' });
               return;
             }
-  
-            console.log('Rows:', rows);
-            res.json(rows); // Send the array directly, assuming it's an array of software objects
+            res.json(rows); 
           }
         );
       });
@@ -52,5 +66,6 @@ router.post('/', (req, res) => {
       res.status(400).json({ error: 'Bad Request' });
     }
   });
-  
-  module.exports = router;
+
+
+  module.exports = router;  

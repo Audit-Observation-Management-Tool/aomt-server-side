@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const pool = require("../../config/database");
+const pool = require("../../../config/database");
 
-router.post('/authenticate', (req, res) => {
+router.post('/', (req, res) => {
     const { userID, password } = req.body;
   
     const handleSupervisorLogin = (supervisorResults) => {
@@ -57,51 +57,4 @@ router.post('/authenticate', (req, res) => {
   });
 
 
-  router.get('/supervisor/:userID', (req, res) => {
-    const { userID } = req.params; 
-    pool.getConnection((err, connection) => {
-      if (err) 
-      {
-        console.error('Error getting MySQL connection:', err);
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-  
-      const sql = 'CALL FetchSupervisorData(?)';
-  
-      connection.query(sql, [userID], (err, supervisorResults) => {
-        connection.release();
-        if (err) 
-        {
-          console.error('Error executing MySQL query:', err);
-          return res.status(500).json({ message: 'Internal server error' });
-        }
-        res.status(200).json({ supervisorData: supervisorResults[0] });
-      });
-    });
-  });
-
-  
-  router.get('/member/:userID', (req, res) => {
-    const { userID } = req.params; 
-    pool.getConnection((err, connection) => {
-      if (err) 
-      {
-        console.error('Error getting MySQL connection:', err);
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-  
-      const sql = 'CALL FetchMemberData(?)';
-  
-      connection.query(sql, [userID], (err, memberResults) => {
-        connection.release();
-        if (err) 
-        {
-          console.error('Error executing MySQL query:', err);
-          return res.status(500).json({ message: 'Internal server error' });
-        }
-        res.status(200).json({ memberData: memberResults[0] });
-      });
-    });
-  });
-  
   module.exports = router;  
