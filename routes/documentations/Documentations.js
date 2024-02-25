@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const pool = require("../../config/database");
 
-router.post('/fetch-assigned-team-members', (req, res) => {
-    const { softwareID } = req.body;
+router.get('/fetch-assigned-team-members/:softwareID', (req, res) => {
+    const { softwareID } = req.params;
     pool.getConnection((err, connection) => {
         if (err) {
             console.error('Error getting MySQL connection:', err);
