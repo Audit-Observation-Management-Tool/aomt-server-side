@@ -36,7 +36,7 @@ router.post('/', (req, res) => {
           return handleSupervisorLogin(supervisorResults);
         }
   
-        const memberSql = `SELECT ID, Password from team_members WHERE ID = ? AND Password = ?`;
+        const memberSql = `SELECT Member_ID, Password from team_members WHERE Member_ID = ? AND Password = ?`;
         connection.query(memberSql, [userID, password], (err, memberResults) => {
           connection.release();
           if (err) 

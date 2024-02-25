@@ -65,11 +65,8 @@ router.post('/', (req, res) => {
 });
 
 
-router.post('/a', (req, res) => {
-  console.log('backend');
+router.post('/fetch-version-details', (req, res) => {
   try {
-    //const { supervisorId } = req.body;
-
     pool.getConnection((err, connection) => {
       if (err) {
         console.error('Error getting database connection:', err);
@@ -98,7 +95,6 @@ router.post('/a', (req, res) => {
             res.status(404).json({ error: 'Not Found' });
             return;
           }
-          console.log('Query results:', rows);
           res.json(rows);
         }
       );
