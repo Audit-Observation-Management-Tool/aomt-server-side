@@ -6,7 +6,7 @@ const Supervisor = require("./routes/users/supervisor/Supervisor");
 const Member = require("./routes/users/member/Member");
 const PieChart = require("./routes/charts/pieChart/PieChart");
 const BarChart = require("./routes/charts/barChart/BarChart");
-const Documentations = require("./routes/documentations/Documentations");
+const Documents = require("./routes/documents/Documents");
 require('dotenv/config');
 
 async function connectAndStartServer() {
@@ -18,7 +18,7 @@ async function connectAndStartServer() {
     app.use("/authenticate", Authentication);
     app.use("/supervisor",Supervisor);
     app.use("/member",Member);
-    app.use("/documentations",Documentations);
+    app.use("/documents",Documents);
 
     const port = process.env.SERVER_PORT ;
     

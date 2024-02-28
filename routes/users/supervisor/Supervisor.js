@@ -64,45 +64,4 @@ router.post('/', (req, res) => {
   }
 });
 
-
-router.post('/fetch-version-details', (req, res) => {
-  try {
-    pool.getConnection((err, connection) => {
-      if (err) {
-        console.error('Error getting database connection:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-        return;
-      }
-
-      connection.query(
-        `Select * from 
-        software natural join documents 
-        natural join versions 
-        join team_members on versions.Member_ID=team_members.Member_ID
-        where Software_ID=1 and Document_ID=1 order by Version_No DESC;`,
-      
-        (queryErr, rows) => {
-          connection.release();
-
-          if (queryErr) {
-            console.error('Error executing SQL query:', queryErr);
-            res.status(500).json({ error: 'Internal Server Error' });
-            return;
-          }
-
-          if (!rows || rows.length === 0) {
-            console.log('No software found for supervisor ID:', supervisorId);
-            res.status(404).json({ error: 'Not Found' });
-            return;
-          }
-          res.json(rows);
-        }
-      );
-    });
-  } catch (error) {
-    console.error('Error parsing request body:', error);
-    res.status(400).json({ error: 'Bad Request' });
-  }
-});
-
 module.exports = router;  
