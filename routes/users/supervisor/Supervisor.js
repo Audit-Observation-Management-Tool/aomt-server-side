@@ -105,4 +105,75 @@ router.post('/fetch-version-details', (req, res) => {
   }
 });
 
+
+
+router.post('/review-doc', (req, res) => {
+  try {
+    const { status, remarks } = req.body;
+    const updatedStatus = status === 'return' ? 'Returned' : 'Accepted';
+    let Version_ID;
+
+    pool.getConnection((err, connection) => {
+      if (err) {
+        console.error('Error getting database connection:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+        return;
+      }
+
+      // Step 1: Select the VID based on Document_ID and the maximum Version_No
+      connection.query(
+        `SELECT VID FROM versions
+        WHERE Document_ID=1 and (Document_ID, Version_No) IN (
+            SELECT Document_ID, MAX(Version_No) AS MaxVersion
+            FROM versions
+            GROUP BY Document_ID
+        );`,
+        (queryErr, rows) => {
+          if (queryErr) {
+            connection.release();
+            console.error('Error executing SQL query:', queryErr);
+            res.status(500).json({ error: 'Internal Server Error' });
+            return;
+          }
+
+          if (!rows || rows.length === 0) {
+            connection.release();
+            console.log('No matching version found');
+            res.status(404).json({ error: 'Not Found' });
+            return;
+          }
+
+          Version_ID = rows[0].VID;
+
+          // Step 2: Update the version with new status and remarks
+          connection.query(
+            `UPDATE versions
+            SET Status=?, Remarks=?
+            WHERE VID=?`,
+            [updatedStatus, remarks, Version_ID],
+            (updateErr, updateRows) => {
+              connection.release();
+
+              if (updateErr) {
+                console.error('Error executing update query:', updateErr);
+                res.status(500).json({ error: 'Internal Server Error' });
+                return;
+              }
+
+              res.json(updateRows);
+            }
+          );
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error parsing request body:', error);
+    res.status(400).json({ error: 'Bad Request' });
+  }
+});
+
+
 module.exports = router;  
+
+
+
