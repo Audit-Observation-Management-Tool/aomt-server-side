@@ -14,7 +14,7 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 
         const promises = documentTypes.map(documentType => {
             return new Promise((resolve, reject) => {
-                const query = `CALL FetchAssignedTeamMembers(?, ?);`;
+                const query = `CALL FetchSoftwareDocumentInformation(?, ?);`;
 
                 connection.query(query, [softwareID, documentType], (error, results) => {
                     if (error) 
@@ -28,6 +28,7 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 
         Promise.all(promises)
             .then(combinedResults => {
+                //console.log(combinedResults);
                 res.status(200).json(combinedResults);
             })
             .catch(error => {
@@ -42,6 +43,7 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 
 router.post('/fetch-version-details', (req, res) => {
     try {
+      const { softwareID, documentID } = req.body;
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
@@ -54,8 +56,8 @@ router.post('/fetch-version-details', (req, res) => {
           software natural join documents 
           natural join versions 
           join team_members on versions.Member_ID=team_members.Member_ID
-          where Software_ID=1 and Document_ID=1 order by Version_No DESC;`,
-        
+          where Software_ID=? and Document_ID=? order by Version_No DESC;`,
+          [softwareID, documentID],
           (queryErr, rows) => {
             connection.release();
   
@@ -65,8 +67,8 @@ router.post('/fetch-version-details', (req, res) => {
               return;
             }
   
-            if (!rows || rows.length === 0) {
-              console.log('No software found for supervisor ID:', supervisorId);
+            if (!rows || rows.length === 0) 
+            {
               res.status(404).json({ error: 'Not Found' });
               return;
             }
@@ -81,34 +83,28 @@ router.post('/fetch-version-details', (req, res) => {
   });
   
 
-router.post('/download-pdf', (req, res) => {
+  router.post('/download-pdf', (req, res) => {
     try {
-        const { pdfID } = req.body;
-        console.log("Received PDF ID:", pdfID);
-        pool.query('SELECT file_name, file_data FROM pdf_files WHERE id = ?', [pdfId], (err, result) => {
+        const { softwareID, documentType } = req.body;
+        console.log("Received :", req.body);
+        pool.query('SELECT Attachments FROM attachments WHERE Software_ID = ? AND Type = ?', [softwareID, documentType], (err, result) => {
             if (err) 
             {
                 console.error('Error fetching PDF data from MySQL:', err);
-                return res.status(500).send('Internal server error');
+                return res.status(500).send('Internal Server Error');
             }
-            if (result.length === 0) 
-            {
-                return res.status(404).send('PDF not found');
+            if (result.length === 0) {
+                return res.status(404).send('PDF Not Found');
             }
-            const fileName = result[0].file_name;
-            const fileData = result[0].file_data;
-            res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);  
+            const PDF = result[0].Attachments;
             res.setHeader('Content-Type', 'application/pdf');
-            res.send(fileData);
+            res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"'); 
+            res.send(PDF);
         });
-    } 
-    catch (error) 
-    {
-        console.error('Error parsing request body:', error);
+    } catch (error) {
+        console.error('Error handling request:', error);
         res.status(400).json({ error: 'Bad Request' });
     }
 });
-
-
 
 module.exports = router;
