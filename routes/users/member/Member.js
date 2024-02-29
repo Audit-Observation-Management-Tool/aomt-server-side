@@ -20,7 +20,7 @@ const pool = require("../../../config/database");
           console.error('Error executing MySQL query:', err);
           return res.status(500).json({ message: 'Internal server error' });
         }
-        res.status(200).json({ memberData: memberResults[0] });
+        res.status(200).json({ isSupervisor: false, memberData: memberResults[0] });
       });
     });
   });

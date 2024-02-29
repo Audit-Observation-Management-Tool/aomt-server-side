@@ -12,7 +12,7 @@ router.post('/', (req, res) => {
     };
   
     const handleMemberLogin = (memberResults) => {
-      res.status(200).json({ userID: memberResults[0].ID });
+      res.status(200).json({ isSupervisor: false, userID: memberResults[0].Member_ID });
     };
   
     const handleError = (err, message) => {
