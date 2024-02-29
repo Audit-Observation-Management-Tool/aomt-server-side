@@ -4,6 +4,8 @@ const pool = require("../../../config/database");
 
 router.post('/', (req, res) => {
     const { userID, password } = req.body;
+
+    console.log(req.body);
   
     const handleSupervisorLogin = (supervisorResults) => {
       res.status(200).json({ isSupervisor: true, userID: supervisorResults[0].ID });
@@ -46,6 +48,7 @@ router.post('/', (req, res) => {
   
           if (memberResults.length > 0) 
           {
+            
             return handleMemberLogin(memberResults);
           }
   
