@@ -95,8 +95,11 @@ router.post('/fetch-version-details', (req, res) => {
             res.status(404).json({ error: 'Not Found' });
             return;
           }
+          console.log('Query Result:', rows);
+
           res.json(rows);
         }
+        
       );
     });
   } catch (error) {
