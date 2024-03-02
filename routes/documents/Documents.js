@@ -81,6 +81,49 @@ router.post('/fetch-version-details', (req, res) => {
       res.status(400).json({ error: 'Bad Request' });
     }
   });
+
+
+  router.post('/fetch-member-list', (req, res) => {
+    try {
+      const { softwareID, } = req.body;
+      pool.getConnection((err, connection) => {
+        if (err) {
+          console.error('Error getting database connection:', err);
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
+        }
+        connection.query(
+          `select * from software join documents 
+          on software.Software_ID=documents.Software_ID
+          join assignments on assignments.Document_ID=documents.Document_ID
+          join team_members on team_members.Member_ID=assignments.Team_member_ID
+          where software.Software_ID=2;`,
+          [softwareID],
+          (queryErr, rows) => {
+            connection.release();
+  
+            if (queryErr) {
+              console.error('Error executing SQL query:', queryErr);
+              res.status(500).json({ error: 'Internal Server Error' });
+              return;
+            }
+  
+            if (!rows || rows.length === 0) 
+            {
+              res.status(404).json({ error: 'Not Found' });
+              return;
+            }
+            console.log('Query results:', rows);
+            res.json(rows);
+          }
+        );
+  
+      });
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      res.status(400).json({ error: 'Bad Request' });
+    }
+  });
   
 
   router.post('/download-pdf', (req, res) => {
