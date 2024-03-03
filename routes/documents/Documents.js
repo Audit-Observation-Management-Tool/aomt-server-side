@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require("../../config/database");
+const { GenerateDocumentVersion } = require("../../utils/generateDocumentVersion/GenerateDocumentVersion");
+const multer = require("multer");
+const upload = multer();
+
 
 router.get('/fetch-document-progress/:softwareID', (req, res) => {
     const { softwareID } = req.params;
@@ -28,7 +32,7 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 
         Promise.all(promises)
             .then(combinedResults => {
-                //console.log(combinedResults);
+                console.log(combinedResults.Type);
                 res.status(200).json(combinedResults);
             })
             .catch(error => {
@@ -106,5 +110,41 @@ router.post('/fetch-version-details', (req, res) => {
         res.status(400).json({ error: 'Bad Request' });
     }
 });
+
+router.post('/upload-pdf', upload.single('file'), (req, res) => {
+  
+  if (!req.file) 
+  {
+      return res.status(400).send('No PDF file uploaded.');
+  }
+
+  const fileData = req.file.buffer;
+ 
+
+  pool.getConnection((err, connection) => {
+      if (err) 
+      {
+          console.error('Error getting MySQL connection:', err);
+          return res.status(500).send('Internal server error');
+      }
+
+      const SID = 1;
+
+     const insertQuery = 'CALL UpdateOrUploadAttachments (?, ?)';
+     connection.query(insertQuery, [SID, fileData], (err, result) => {
+          connection.release();
+
+          if (err) 
+          {
+              console.error('Error inserting data into MySQL:', err);
+              return res.status(500).send('Internal server error');
+          }
+         // console.log("resut: ", result);
+          res.status(200).send('PDF file uploaded and saved to MySQL database.');
+      });
+   
+  });
+});
+
 
 module.exports = router;
