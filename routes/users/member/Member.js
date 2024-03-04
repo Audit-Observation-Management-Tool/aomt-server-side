@@ -23,13 +23,14 @@ const pool = require("../../../config/database");
         res.status(200).json({ isSupervisor: false, memberData: memberResults[0] });
       });
     });
-  });
+  });  
 
 
   
-  router.get('/member-details', (req, res) => { console.log('backen');
+  router.get('/member-details/:member_ID', (req, res) => { console.log('backen');
     try {
-      const { memberID } = req.body;
+      const { member_ID } = req.params;
+      console.log(member_ID);
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
@@ -37,12 +38,20 @@ const pool = require("../../../config/database");
           return;
         }
         connection.query(
-          `select * from supervisors join team_members on supervisors.Division=team_members.Division
-          join assignments on assignments.Team_member_ID=team_members.Member_ID 
-          join documents on documents.Document_ID=assignments.Document_ID
-          join software on documents.Software_ID=software.Software_ID
-          where team_members.Member_ID=1;`,
-          [memberID],
+          `WITH RankedVersions AS (
+            SELECT  v.Document_ID, v.Version_No,  v.Status,
+             ROW_NUMBER() OVER (PARTITION BY v.Document_ID ORDER BY v.Submission_Date DESC) AS RowNum
+            FROM versions v
+        ) SELECT sup.ID, sup.Name as 'Supervisor_name', tm.Member_ID,  tm.Name,  doc.Document_ID,
+        doc.Type AS Document_Type, doc.Deadline,  soft.Software_name,  rv.Version_No, rv.Status
+        FROM supervisors sup
+        JOIN  team_members tm ON sup.Division = tm.Division
+        JOIN assignments ass ON ass.Team_member_ID = tm.Member_ID
+        JOIN documents doc ON doc.Document_ID = ass.Document_ID
+        JOIN  software soft ON doc.Software_ID = soft.Software_ID
+        LEFT JOIN RankedVersions rv ON rv.Document_ID = doc.Document_ID AND rv.RowNum = 1
+        WHERE tm.Member_ID = ?;`,
+          [member_ID],
           (queryErr, rows) => {
             connection.release();
   
