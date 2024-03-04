@@ -71,6 +71,50 @@ router.post('/', (req, res) => {
   }
 });
 
+router.post('/fetch-calendar-events', (req, res) => {
+  try {
+    const { supervisorId } = req.body;
+
+    pool.getConnection((err, connection) => {
+      if (err) {
+        console.error('Error getting database connection:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+        return;
+      }
+
+      connection.query(
+        `SELECT d.Deadline, d.Type, s.Software_name
+        FROM documents d
+        JOIN software s ON d.Software_ID = s.Software_ID
+        WHERE s.Supervisor_ID = ?;
+        `,
+        [supervisorId],
+        (queryErr, rows) => {
+          connection.release();
+
+          if (queryErr) {
+            console.error('Error executing SQL query:', queryErr);
+            res.status(500).json({ error: 'Internal Server Error' });
+            return;
+          }
+
+          if (!rows || rows.length === 0) {
+            console.log('No software found for supervisor ID:', supervisorId);
+            res.status(404).json({ error: 'Not Found' });
+            return;
+          }
+
+          console.log(rows);
+          res.json(rows);
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error parsing request body:', error);
+    res.status(400).json({ error: 'Bad Request' });
+  }
+});
+
 router.post('/review-doc', (req, res) => { console.log('backend');
   try {
     const { status, remarks, documentID } = req.body;
