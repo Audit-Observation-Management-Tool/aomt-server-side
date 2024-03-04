@@ -32,7 +32,6 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 
         Promise.all(promises)
             .then(combinedResults => {
-               // console.log(combinedResults[1]);
                 res.status(200).json(combinedResults);
             })
             .catch(error => {
@@ -102,10 +101,10 @@ router.post('/fetch-version-details', (req, res) => {
         connection.query(
           `select distinct team_members.Member_ID, team_members.Name, team_members.Email, team_members.Phone
           from software join documents 
-                   on software.Software_ID=documents.Software_ID
-                   join assignments on assignments.Document_ID=documents.Document_ID
-                   join team_members on team_members.Member_ID=assignments.Team_member_ID
-                   where software.Software_ID=1;`,
+          on software.Software_ID=documents.Software_ID
+          join assignments on assignments.Document_ID=documents.Document_ID
+          join team_members on team_members.Member_ID=assignments.Team_member_ID
+          where software.Software_ID=?;`,
           [softwareID],
           (queryErr, rows) => {
             connection.release();
