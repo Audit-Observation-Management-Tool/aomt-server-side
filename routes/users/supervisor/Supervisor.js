@@ -36,9 +36,14 @@ router.post('/', (req, res) => {
       }
 
       connection.query(
-        `SELECT *
-            FROM software
-            WHERE Supervisor_ID = ?`,
+        `SELECT s.*, 
+        (SELECT COUNT(DISTINCT a.Team_member_ID) 
+         FROM assignments a
+         JOIN documents d ON a.Document_ID = d.Document_ID
+         WHERE d.Software_ID = s.Software_ID) AS Assigned_Members_Count
+        FROM software s
+        WHERE s.Supervisor_ID = ?;
+        `,
         [supervisorId],
         (queryErr, rows) => {
           connection.release();
@@ -54,6 +59,8 @@ router.post('/', (req, res) => {
             res.status(404).json({ error: 'Not Found' });
             return;
           }
+
+          console.log(rows);
           res.json(rows);
         }
       );
