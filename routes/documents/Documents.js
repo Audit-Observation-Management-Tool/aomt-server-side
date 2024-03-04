@@ -45,10 +45,11 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
     });
 });
 
+
 router.post('/fetch-version-details', (req, res) => {
     try {
       const { softwareID, documentID } = req.body;
-      console.log(req.body);
+      console.log("here i am");
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
@@ -133,9 +134,9 @@ router.post('/fetch-version-details', (req, res) => {
   });
 
 
-  router.get('/barchart', (req, res) => { //console.log('backen');
+  router.get('/barchart/:softwareID', (req, res) => {
     try {
-      const { softwareID, } = req.body;
+      const { softwareID, } = req.params;
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
@@ -147,7 +148,7 @@ router.post('/fetch-version-details', (req, res) => {
           FROM software s
             JOIN documents d ON s.Software_ID = d.Software_ID
             LEFT JOIN versions v ON d.Document_ID = v.Document_ID
-          WHERE s.Software_ID = 1
+          WHERE s.Software_ID = ?
           GROUP BY d.Type;`,
           [softwareID],
           (queryErr, rows) => {
@@ -161,7 +162,7 @@ router.post('/fetch-version-details', (req, res) => {
   
             if (!rows || rows.length === 0) 
             {
-              res.status(404).json({ error: 'Not Found' });
+              res.status(500).json({ error: 'Not Found' });
               return;
             }
             //console.log('Query results:', rows);
@@ -178,9 +179,9 @@ router.post('/fetch-version-details', (req, res) => {
 
 
 
-  router.get('/arcprogress', (req, res) => {//console.log('backendd');
+  router.get('/arcprogress/:softwareID', (req, res) => {
   try {
-    const { softwareID, } = req.body;
+    const { softwareID } = req.params;
     pool.getConnection((err, connection) => {
       if (err) {
         console.error('Error getting database connection:', err);
@@ -191,15 +192,15 @@ router.post('/fetch-version-details', (req, res) => {
       `WITH MaxSubmissionDates AS (SELECT "Document_ID",
       MAX("Submission_Date") AS "Largest_Submission_Date"FROM 
       "versions" WHERE
-      "Document_ID" IN (SELECT "Document_ID" FROM "documents" WHERE "Software_ID" = 1) -- Replace with the desired Software_ID
+      "Document_ID" IN (SELECT "Document_ID" FROM "documents" WHERE "Software_ID" = ?)
       GROUP BY "Document_ID")
       SELECT 
       d."Document_ID", SUBSTRING_INDEX(SUBSTRING_INDEX(d.Type, '(', -1), ')', 1) AS "Document_Type",m."Largest_Submission_Date", v."Status"
       FROM "documents" d
       JOIN MaxSubmissionDates m ON d."Document_ID" = m."Document_ID"
       JOIN "versions" v ON m."Document_ID" = v."Document_ID" AND m."Largest_Submission_Date" = v."Submission_Date"
-      WHERE  d."Software_ID" = 1;`,
-        [softwareID],
+      WHERE  d."Software_ID" = ?;`,
+        [softwareID, softwareID],
         (queryErr, rows) => {
           connection.release();
 

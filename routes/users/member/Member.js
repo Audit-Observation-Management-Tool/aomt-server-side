@@ -43,7 +43,7 @@ const pool = require("../../../config/database");
              ROW_NUMBER() OVER (PARTITION BY v.Document_ID ORDER BY v.Submission_Date DESC) AS RowNum
             FROM versions v
         ) SELECT sup.ID, sup.Name as 'Supervisor_name', tm.Member_ID,  tm.Name,  doc.Document_ID,
-        doc.Type AS Document_Type, doc.Deadline,  soft.Software_name,  rv.Version_No, rv.Status
+        doc.Type AS Document_Type, doc.Deadline,  soft.Software_name, soft.Software_ID, rv.Version_No, rv.Status
         FROM supervisors sup
         JOIN  team_members tm ON sup.Division = tm.Division
         JOIN assignments ass ON ass.Team_member_ID = tm.Member_ID
