@@ -61,7 +61,7 @@ router.post('/fetch-version-details', (req, res) => {
           software join documents on software.Software_ID=documents.Software_ID
 			join versions on versions.Document_ID=documents.Document_ID
           join team_members on versions.Member_ID=team_members.Member_ID
-          where software.Software_ID=1 and documents.Document_ID=2 order by Version_No DESC;`,
+          where software.Software_ID=? and documents.Document_ID=? order by Version_No DESC;`,
           [softwareID, documentID],
           (queryErr, rows) => {
             connection.release();
@@ -200,40 +200,127 @@ router.post('/fetch-version-details', (req, res) => {
     }
 });
 
-router.post('/upload-pdf', upload.single('file'), (req, res) => {
-  
-  if (!req.file) 
+router.post('/upload-pdf/:softwareID/:documentType', upload.single('file'), (req, res) => {
+
+    const {softwareID, documentType} = req.params;
+    if (!req.file) {
+        return res.status(400).send('No PDF file uploaded.');
+    }
+
+    const fileData = req.file.buffer;
+
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error('Error getting MySQL connection:', err);
+            return res.status(500).send('Internal server error');
+        }
+
+        const selectQuery = 'SELECT Version_No FROM attachments WHERE Software_ID = ? AND Type = ?';
+        connection.query(selectQuery, [softwareID, documentType], (err, rows) => {
+            if (err) {
+                connection.release();
+                console.error('Error querying database:', err);
+                return res.status(500).send('Internal server error');
+            }
+
+            const oldVersion = rows[0].Version_No;
+
+            if(oldVersion == null) oldVersion = "0.9.9";
+
+            const newDocumentVersion = GenerateDocumentVersion(oldVersion);
+
+            if (rows[0].Version_No === null) 
+            {
+                const insertQuery = 'INSERT INTO attachments (Software_ID, Version_No, Type, Attachments) VALUES (?, ?, ?, ?)';
+                connection.query(insertQuery, [softwareID, newDocumentVersion, documentType, fileData], (err, result) => {
+                    connection.release();
+                    if (err) {
+                        console.error('Error inserting data into MySQL:', err);
+                        return res.status(500).send('Internal server error');
+                    }
+                    res.status(200).send('PDF file uploaded and saved to MySQL database.');
+                });
+            } 
+            else 
+            {
+                const updateQuery = 'UPDATE attachments SET Attachments = ?, Version_No = ? WHERE Software_ID = ? AND Type = ?';
+                connection.query(updateQuery, [fileData, newDocumentVersion, softwareID, documentType], (err, result) => {
+                    connection.release();
+                    if (err) {
+                        console.error('Error updating data in MySQL:', err);
+                        return res.status(500).send('Internal server error');
+                    }
+                    res.status(200).send('PDF file updated and saved to MySQL database.');
+                });
+            }
+        });
+    });
+});
+
+router.post("/upload-change-message", (req, res) => {
+  const { memberID, documentID, content, softwareID } = req.body;
+
+  console.log(req.body);
+
+  if (content) 
   {
-      return res.status(400).send('No PDF file uploaded.');
-  }
 
-  const fileData = req.file.buffer;
- 
-
-  pool.getConnection((err, connection) => {
-      if (err) 
-      {
+    pool.getConnection((err, connection) => {
+      if (err) {
           console.error('Error getting MySQL connection:', err);
           return res.status(500).send('Internal server error');
       }
 
-      const SID = 1;
-
-     const insertQuery = 'CALL UpdateOrUploadAttachments (?, ?)';
-     connection.query(insertQuery, [SID, fileData], (err, result) => {
-          connection.release();
-
+      const selectQuery = 'SELECT Version_No FROM attachments WHERE Software_ID = ? AND Type = (SELECT Type from documents where Document_ID = ?)';
+      connection.query(selectQuery, [softwareID, documentID], (err, rows) => {
           if (err) 
           {
-              console.error('Error inserting data into MySQL:', err);
+              connection.release();
+              console.error('Error querying database:', err);
               return res.status(500).send('Internal server error');
           }
-         // console.log("resut: ", result);
-          res.status(200).send('PDF file uploaded and saved to MySQL database.');
+
+          const newDocumentVersion = rows[0].Version_No;
+          const currentDate = new Date();
+
+          const insertQuery = 'INSERT INTO versions (Change_log, Status, Document_ID, Member_ID, Version_No, Submission_Date) VALUES (?, ?, ?, ?, ?, ?)';
+          connection.query(insertQuery, [content, "Not Reviewed", documentID, memberID, newDocumentVersion, currentDate], (err, result) => {
+              connection.release();
+              if (err) 
+              {
+                  console.error('Error inserting data into MySQL:', err);
+                  return res.status(500).send('Internal server error');
+              }
+              res.status(200).send('PDF file uploaded and saved to MySQL database.');
+          });
       });
-   
+  });
+  } 
+  else 
+  {
+    res.status(400).send("Invalid content format.");
+  }
+});
+
+
+/*
+router.get('/rich-text-content', (req, res) => {
+  // Query to fetch rich text content from the database
+  const sql = 'SELECT rich_text_content FROM test where id=1';
+
+  // Execute the query
+  pool.query(sql, (error, results) => {
+    if (error) {
+      console.error('Error fetching rich text content:', error);
+      res.status(500).send('Internal server error.');
+    } else {
+      // Extract rich text content from the results
+      const richTextContent = results.map(row => row.rich_text_content);
+      res.json(richTextContent); // Send the rich text content as JSON response
+    }
   });
 });
+*/
 
 
 module.exports = router;
