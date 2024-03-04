@@ -64,9 +64,9 @@ router.post('/', (req, res) => {
   }
 });
 
-router.post('/review-doc', (req, res) => {
+router.post('/review-doc', (req, res) => { console.log('backend');
   try {
-    const { status, remarks } = req.body;
+    const { status, remarks, documentID } = req.body;
     const updatedStatus = status === 'return' ? 'Returned' : 'Accepted';
     let Version_ID;
 
@@ -80,11 +80,11 @@ router.post('/review-doc', (req, res) => {
       // Step 1: Select the VID based on Document_ID and the maximum Version_No
       connection.query(
         `SELECT VID FROM versions
-        WHERE Document_ID=1 and (Document_ID, Version_No) IN (
+        WHERE Document_ID=? and (Document_ID, Version_No) IN (
             SELECT Document_ID, MAX(Version_No) AS MaxVersion
             FROM versions
             GROUP BY Document_ID
-        );`,
+        );`,[documentID],
         (queryErr, rows) => {
           if (queryErr) {
             connection.release();
@@ -116,7 +116,8 @@ router.post('/review-doc', (req, res) => {
                 res.status(500).json({ error: 'Internal Server Error' });
                 return;
               }
-
+              console.log(Version_ID);
+              
               res.json(updateRows);
             }
           );

@@ -99,11 +99,12 @@ router.post('/fetch-version-details', (req, res) => {
           return;
         }
         connection.query(
-          `select * from software join documents 
-          on software.Software_ID=documents.Software_ID
-          join assignments on assignments.Document_ID=documents.Document_ID
-          join team_members on team_members.Member_ID=assignments.Team_member_ID
-          where software.Software_ID=2;`,
+          `select distinct team_members.Member_ID, team_members.Name, team_members.Email, team_members.Phone
+          from software join documents 
+                   on software.Software_ID=documents.Software_ID
+                   join assignments on assignments.Document_ID=documents.Document_ID
+                   join team_members on team_members.Member_ID=assignments.Team_member_ID
+                   where software.Software_ID=1;`,
           [softwareID],
           (queryErr, rows) => {
             connection.release();
@@ -119,7 +120,7 @@ router.post('/fetch-version-details', (req, res) => {
               res.status(404).json({ error: 'Not Found' });
               return;
             }
-            //console.log('Query results:', rows);
+            console.log('memeber list:', rows);
             res.json(rows);
           }
         );
@@ -132,7 +133,7 @@ router.post('/fetch-version-details', (req, res) => {
   });
 
 
-  router.get('/barchart', (req, res) => { console.log('backen');
+  router.get('/barchart', (req, res) => { //console.log('backen');
     try {
       const { softwareID, } = req.body;
       pool.getConnection((err, connection) => {
@@ -163,7 +164,7 @@ router.post('/fetch-version-details', (req, res) => {
               res.status(404).json({ error: 'Not Found' });
               return;
             }
-            console.log('Query results:', rows);
+            //console.log('Query results:', rows);
             res.json(rows);
           }
         );
@@ -174,6 +175,56 @@ router.post('/fetch-version-details', (req, res) => {
       res.status(400).json({ error: 'Bad Request' });
     }
   });
+
+
+
+  router.get('/arcprogress', (req, res) => {//console.log('backendd');
+  try {
+    const { softwareID, } = req.body;
+    pool.getConnection((err, connection) => {
+      if (err) {
+        console.error('Error getting database connection:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+        return;
+      }
+      connection.query(
+      `WITH MaxSubmissionDates AS (SELECT "Document_ID",
+      MAX("Submission_Date") AS "Largest_Submission_Date"FROM 
+      "versions" WHERE
+      "Document_ID" IN (SELECT "Document_ID" FROM "documents" WHERE "Software_ID" = 1) -- Replace with the desired Software_ID
+      GROUP BY "Document_ID")
+      SELECT 
+      d."Document_ID", SUBSTRING_INDEX(SUBSTRING_INDEX(d.Type, '(', -1), ')', 1) AS "Document_Type",m."Largest_Submission_Date", v."Status"
+      FROM "documents" d
+      JOIN MaxSubmissionDates m ON d."Document_ID" = m."Document_ID"
+      JOIN "versions" v ON m."Document_ID" = v."Document_ID" AND m."Largest_Submission_Date" = v."Submission_Date"
+      WHERE  d."Software_ID" = 1;`,
+        [softwareID],
+        (queryErr, rows) => {
+          connection.release();
+
+          if (queryErr) {
+            console.error('Error executing SQL query:', queryErr);
+            res.status(500).json({ error: 'Internal Server Error' });
+            return;
+          }
+
+          if (!rows || rows.length === 0) 
+          {
+            res.status(404).json({ error: 'Not Found' });
+            return;
+          }
+          //console.log('Query results:', rows);
+          res.json(rows);
+        }
+      );
+
+    });
+  } catch (error) {
+    console.error('Error parsing request body:', error);
+    res.status(400).json({ error: 'Bad Request' });
+  }
+});
   
 
   router.post('/download-pdf', (req, res) => {
