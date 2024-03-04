@@ -32,7 +32,7 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 
         Promise.all(promises)
             .then(combinedResults => {
-                console.log(combinedResults.Type);
+               // console.log(combinedResults[1]);
                 res.status(200).json(combinedResults);
             })
             .catch(error => {
@@ -48,6 +48,7 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 router.post('/fetch-version-details', (req, res) => {
     try {
       const { softwareID, documentID } = req.body;
+      console.log(req.body);
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
@@ -57,10 +58,10 @@ router.post('/fetch-version-details', (req, res) => {
   
         connection.query(
           `Select * from 
-          software natural join documents 
-          natural join versions 
+          software join documents on software.Software_ID=documents.Software_ID
+			join versions on versions.Document_ID=documents.Document_ID
           join team_members on versions.Member_ID=team_members.Member_ID
-          where Software_ID=? and Document_ID=? order by Version_No DESC;`,
+          where software.Software_ID=1 and documents.Document_ID=2 order by Version_No DESC;`,
           [softwareID, documentID],
           (queryErr, rows) => {
             connection.release();
@@ -77,8 +78,96 @@ router.post('/fetch-version-details', (req, res) => {
               return;
             }
             res.json(rows);
+            console.log(rows);
           }
         );
+      });
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      res.status(400).json({ error: 'Bad Request' });
+    }
+  });
+
+
+  router.post('/fetch-member-list', (req, res) => {
+    try {
+      const { softwareID, } = req.body;
+      pool.getConnection((err, connection) => {
+        if (err) {
+          console.error('Error getting database connection:', err);
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
+        }
+        connection.query(
+          `select * from software join documents 
+          on software.Software_ID=documents.Software_ID
+          join assignments on assignments.Document_ID=documents.Document_ID
+          join team_members on team_members.Member_ID=assignments.Team_member_ID
+          where software.Software_ID=2;`,
+          [softwareID],
+          (queryErr, rows) => {
+            connection.release();
+  
+            if (queryErr) {
+              console.error('Error executing SQL query:', queryErr);
+              res.status(500).json({ error: 'Internal Server Error' });
+              return;
+            }
+  
+            if (!rows || rows.length === 0) 
+            {
+              res.status(404).json({ error: 'Not Found' });
+              return;
+            }
+            //console.log('Query results:', rows);
+            res.json(rows);
+          }
+        );
+  
+      });
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      res.status(400).json({ error: 'Bad Request' });
+    }
+  });
+
+
+  router.get('/barchart', (req, res) => { console.log('backen');
+    try {
+      const { softwareID, } = req.body;
+      pool.getConnection((err, connection) => {
+        if (err) {
+          console.error('Error getting database connection:', err);
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
+        }
+        connection.query(
+          `SELECT COUNT(v.VID) AS count, SUBSTRING_INDEX(SUBSTRING_INDEX(d.Type, '(', -1), ')', 1) as type
+          FROM software s
+            JOIN documents d ON s.Software_ID = d.Software_ID
+            LEFT JOIN versions v ON d.Document_ID = v.Document_ID
+          WHERE s.Software_ID = 1
+          GROUP BY d.Type;`,
+          [softwareID],
+          (queryErr, rows) => {
+            connection.release();
+  
+            if (queryErr) {
+              console.error('Error executing SQL query:', queryErr);
+              res.status(500).json({ error: 'Internal Server Error' });
+              return;
+            }
+  
+            if (!rows || rows.length === 0) 
+            {
+              res.status(404).json({ error: 'Not Found' });
+              return;
+            }
+            console.log('Query results:', rows);
+            res.json(rows);
+          }
+        );
+  
       });
     } catch (error) {
       console.error('Error parsing request body:', error);
