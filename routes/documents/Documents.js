@@ -95,11 +95,12 @@ router.post('/fetch-version-details', (req, res) => {
           return;
         }
         connection.query(
-          `select * from software join documents 
-          on software.Software_ID=documents.Software_ID
-          join assignments on assignments.Document_ID=documents.Document_ID
-          join team_members on team_members.Member_ID=assignments.Team_member_ID
-          where software.Software_ID=2;`,
+          `select distinct team_members.Member_ID, team_members.Name, team_members.Email, team_members.Phone
+          from software join documents 
+                   on software.Software_ID=documents.Software_ID
+                   join assignments on assignments.Document_ID=documents.Document_ID
+                   join team_members on team_members.Member_ID=assignments.Team_member_ID
+                   where software.Software_ID=1;`,
           [softwareID],
           (queryErr, rows) => {
             connection.release();
@@ -115,7 +116,7 @@ router.post('/fetch-version-details', (req, res) => {
               res.status(404).json({ error: 'Not Found' });
               return;
             }
-            //console.log('Query results:', rows);
+            console.log('memeber list:', rows);
             res.json(rows);
           }
         );
@@ -209,7 +210,7 @@ router.post('/fetch-version-details', (req, res) => {
             res.status(404).json({ error: 'Not Found' });
             return;
           }
-          console.log('Query results:', rows);
+          //console.log('Query results:', rows);
           res.json(rows);
         }
       );
