@@ -91,7 +91,7 @@ router.post('/fetch-version-details', (req, res) => {
 
   router.post('/fetch-member-list', (req, res) => {
     try {
-      const { softwareID, } = req.body;
+      const { softwareID } = req.body;
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
@@ -99,7 +99,7 @@ router.post('/fetch-version-details', (req, res) => {
           return;
         }
         connection.query(
-          `select distinct team_members.Member_ID, team_members.Name, team_members.Email, team_members.Phone
+          `select distinct team_members.Member_ID, team_members.Name, team_members.Email, team_members.Phone, team_members.ProfilePicture
           from software join documents 
           on software.Software_ID=documents.Software_ID
           join assignments on assignments.Document_ID=documents.Document_ID
@@ -273,14 +273,14 @@ router.post('/upload-pdf/:softwareID/:documentType', upload.single('file'), (req
                 console.error('Error querying database:', err);
                 return res.status(500).send('Internal server error');
             }
+            var oldVersion = "0.9.9";
+            if(rows.length != 0) 
+              oldVersion = rows[0].Version_No;
 
-            const oldVersion = rows[0].Version_No;
-
-            if(oldVersion == null) oldVersion = "0.9.9";
 
             const newDocumentVersion = GenerateDocumentVersion(oldVersion);
 
-            if (rows[0].Version_No === null) 
+            if (rows.length === 0) 
             {
                 const insertQuery = 'INSERT INTO attachments (Software_ID, Version_No, Type, Attachments) VALUES (?, ?, ?, ?)';
                 connection.query(insertQuery, [softwareID, newDocumentVersion, documentType, fileData], (err, result) => {
