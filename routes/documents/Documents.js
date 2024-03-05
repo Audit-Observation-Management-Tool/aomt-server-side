@@ -354,24 +354,4 @@ router.post("/upload-change-message", (req, res) => {
 });
 
 
-/*
-router.get('/rich-text-content', (req, res) => {
-  // Query to fetch rich text content from the database
-  const sql = 'SELECT rich_text_content FROM test where id=1';
-
-  // Execute the query
-  pool.query(sql, (error, results) => {
-    if (error) {
-      console.error('Error fetching rich text content:', error);
-      res.status(500).send('Internal server error.');
-    } else {
-      // Extract rich text content from the results
-      const richTextContent = results.map(row => row.rich_text_content);
-      res.json(richTextContent); // Send the rich text content as JSON response
-    }
-  });
-});
-*/
-
-
 module.exports = router;
