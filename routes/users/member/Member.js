@@ -82,7 +82,7 @@ const pool = require("../../../config/database");
         connection.query(
           `select count(v.Status) as 'count', v.Status from team_members tm join versions v on tm.Member_ID=v.Member_ID
           join documents d on d.Document_ID=v.Document_ID
-          where tm.Member_ID=1 group by v.Status;`,
+          where tm.Member_ID=? group by v.Status;`,
           [member_ID],
           (queryErr, rows) => {
             connection.release();
