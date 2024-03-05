@@ -27,7 +27,92 @@ const pool = require("../../../config/database");
 
 
   
-  router.get('/member-details/:member_ID', (req, res) => { console.log('backen');
+  router.get('/member-submissions/:member_ID', (req, res) => { //console.log('backendd');
+    try {
+      const { member_ID } = req.params;
+      console.log(member_ID);
+      pool.getConnection((err, connection) => {
+        if (err) {
+          console.error('Error getting database connection:', err);
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
+        }
+        connection.query(
+          `select count(d.Type) as 'count', SUBSTRING_INDEX(SUBSTRING_INDEX(d.Type, '(', -1), ')', 1) as 'Type' from team_members tm join versions v on tm.Member_ID=v.Member_ID
+          join documents d on d.Document_ID=v.Document_ID
+          where tm.Member_ID=? group by d.Type;`,
+          [member_ID],
+          (queryErr, rows) => {
+            connection.release();
+  
+            if (queryErr) {
+              console.error('Error executing SQL query:', queryErr);
+              res.status(500).json({ error: 'Internal Server Error' });
+              return;
+            }
+  
+            if (!rows || rows.length === 0) 
+            {
+              res.status(404).json({ error: 'Not Found' });
+              return;
+            }
+            //console.log('Query results:', rows);
+            res.json(rows);
+          }
+        );
+  
+      });
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      res.status(400).json({ error: 'Bad Request' });
+    }
+  });
+
+
+  router.get('/member-submissions-status/:member_ID', (req, res) => { console.log('backendd');
+    try {
+      const { member_ID } = req.params;
+      console.log(member_ID);
+      pool.getConnection((err, connection) => {
+        if (err) {
+          console.error('Error getting database connection:', err);
+          res.status(500).json({ error: 'Internal Server Error' });
+          return;
+        }
+        connection.query(
+          `select count(v.Status) as 'count', v.Status from team_members tm join versions v on tm.Member_ID=v.Member_ID
+          join documents d on d.Document_ID=v.Document_ID
+          where tm.Member_ID=1 group by v.Status;`,
+          [member_ID],
+          (queryErr, rows) => {
+            connection.release();
+  
+            if (queryErr) {
+              console.error('Error executing SQL query:', queryErr);
+              res.status(500).json({ error: 'Internal Server Error' });
+              return;
+            }
+  
+            if (!rows || rows.length === 0) 
+            {
+              res.status(404).json({ error: 'Not Found' });
+              return;
+            }
+            console.log('Query results:', rows);
+            res.json(rows);
+          }
+        );
+  
+      });
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      res.status(400).json({ error: 'Bad Request' });
+    }
+  });
+
+
+
+  router.get('/member-details/:member_ID', (req, res) => { //console.log('backen');
     try {
       const { member_ID } = req.params;
       console.log(member_ID);
@@ -66,7 +151,7 @@ const pool = require("../../../config/database");
               res.status(404).json({ error: 'Not Found' });
               return;
             }
-            console.log('Query results:', rows);
+            //console.log('Query results:', rows);
             res.json(rows);
           }
         );
