@@ -48,7 +48,6 @@ router.get('/fetch-document-progress/:softwareID', (req, res) => {
 router.post('/fetch-version-details', (req, res) => {
     try {
       const { softwareID, documentID } = req.body;
-      console.log("here i am");
       pool.getConnection((err, connection) => {
         if (err) {
           console.error('Error getting database connection:', err);
